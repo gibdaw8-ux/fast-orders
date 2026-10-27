@@ -2,311 +2,195 @@
 <html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>The Roastery - Track Your Order</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fast Orders - Customer Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Silkscreen&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; user-select: none; }
     .dot-matrix { font-family: 'Silkscreen', monospace; letter-spacing: -2px; }
-    @keyframes pulse-ring { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-    .ringing-animation { animation: pulse-ring 0.8s infinite ease-in-out; }
   </style>
 </head>
-<body class="bg-neutral-100 min-h-screen text-slate-800 flex flex-col items-center justify-center p-0 sm:p-4">
+<body class="min-h-screen flex flex-col items-center justify-center p-4 text-slate-800">
 
-  <div class="bg-white w-full max-w-md min-h-screen sm:min-h-[680px] sm:rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden">
-
-    <!-- Store Header -->
-    <div id="customer-header" class="px-5 py-4 flex items-center justify-between border-b border-neutral-100 bg-white">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-sm">☕</div>
-        <div>
-          <span class="font-extrabold text-sm text-neutral-800 block">The Roastery</span>
-          <span id="cust-sync-status" class="text-[10px] text-amber-600 font-bold">Connecting...</span>
-        </div>
-      </div>
-      <span class="text-[11px] bg-neutral-100 text-neutral-600 px-2.5 py-1 rounded-lg font-bold">FAST ORDERS</span>
+  <div class="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden text-center p-6 sm:p-8">
+    
+    <span class="text-xs bg-orange-100 text-orange-800 font-extrabold px-3 py-1 rounded-full tracking-wider uppercase">The Roastery Cafe</span>
+    
+    <!-- Order Number Header -->
+    <div class="mt-4 mb-2">
+      <span class="text-xs font-bold text-slate-400">TRACKING ORDER</span>
+      <h1 id="customer-order-num" class="dot-matrix text-6xl font-black text-slate-900 mt-1">---</h1>
     </div>
 
-    <!-- VIEW 1: KEYPAD -->
-    <div id="view-keypad" class="flex-1 flex flex-col justify-between p-6">
-      <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-xl shrink-0">#</div>
-        <div>
-          <h2 class="font-extrabold text-emerald-950 text-sm">Enter Your Order Number</h2>
-          <p class="text-xs text-emerald-700">Printed on your paper receipt</p>
-        </div>
-      </div>
-
-      <div class="my-auto text-center py-4">
-        <div id="keypad-display" class="text-6xl font-black tracking-wider text-neutral-800 min-h-[70px] flex items-center justify-center"></div>
-        <div class="h-1 w-28 bg-neutral-200 mx-auto mt-2 rounded-full"></div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-2.5 mb-4">
-        <button onclick="pressKey('1')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">1</button>
-        <button onclick="pressKey('2')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">2</button>
-        <button onclick="pressKey('3')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">3</button>
-        <button onclick="pressKey('4')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">4</button>
-        <button onclick="pressKey('5')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">5</button>
-        <button onclick="pressKey('6')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">6</button>
-        <button onclick="pressKey('7')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">7</button>
-        <button onclick="pressKey('8')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">8</button>
-        <button onclick="pressKey('9')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">9</button>
-        <button onclick="clearKeypad()" class="py-3.5 rounded-2xl bg-red-50 text-red-600 font-bold text-sm">Clear</button>
-        <button onclick="pressKey('0')" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">0</button>
-        <button onclick="backspaceKey()" class="py-3.5 rounded-2xl bg-neutral-100 active:bg-neutral-200 font-bold text-xl">⌫</button>
-      </div>
-
-      <button onclick="trackOrder()" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base shadow-lg transition">
-        Track My Order
-      </button>
+    <!-- Status Badge -->
+    <div id="status-card" class="my-6 p-5 rounded-2xl border-2 transition-all">
+      <div id="status-icon" class="text-3xl mb-1">⏳</div>
+      <h2 id="status-title" class="font-extrabold text-lg">Connecting...</h2>
+      <p id="status-desc" class="text-xs text-slate-500 mt-1">Syncing order status with the cafe counter</p>
     </div>
 
-    <!-- VIEW 2: WAITING -->
-    <div id="view-waiting" class="hidden flex-1 flex flex-col justify-between p-6 text-center">
-      <div>
-        <p class="text-xs text-neutral-400 font-bold uppercase tracking-wider">Your Order Number</p>
-        <div id="waiting-number" class="dot-matrix text-7xl text-neutral-900 my-4">--</div>
-        <div class="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold px-3.5 py-2 rounded-full">
-          <span>🔔</span> <span>Keep this page open to receive your alert</span>
-        </div>
-      </div>
-
-      <div class="my-4">
-        <div class="flex items-center justify-center gap-2 px-6">
-          <div class="flex flex-col items-center">
-            <div class="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow">✓</div>
-            <span class="text-[11px] font-bold text-emerald-700 mt-1">Preparing</span>
-          </div>
-          <div class="flex-1 h-1 bg-neutral-200 rounded-full overflow-hidden">
-            <div class="w-1/2 h-full bg-emerald-500 animate-pulse"></div>
-          </div>
-          <div class="flex flex-col items-center">
-            <div class="w-7 h-7 rounded-full bg-neutral-200 text-neutral-500 flex items-center justify-center text-xs font-bold">●</div>
-            <span class="text-[11px] font-semibold text-neutral-400 mt-1">Ready</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3 my-2">
-        <div class="border border-emerald-200 bg-emerald-50/50 rounded-2xl p-4">
-          <span class="text-xs text-emerald-700 font-bold block mb-1">Ready for Pickup</span>
-          <span id="box-ready-num" class="dot-matrix text-2xl text-emerald-600">--</span>
-        </div>
-        <div class="border border-neutral-200 bg-neutral-50 rounded-2xl p-4">
-          <span class="text-xs text-neutral-500 font-bold block mb-1">Preparing</span>
-          <span id="box-prep-num" class="dot-matrix text-2xl text-amber-600">--</span>
-        </div>
-      </div>
-
-      <div class="space-y-2">
-        <button onclick="enableAudio()" id="sound-btn" class="w-full py-3.5 rounded-2xl bg-neutral-900 text-white font-bold text-xs">
-          🔊 Tap to Enable Sound Alert
-        </button>
-      </div>
-    </div>
-
-    <!-- VIEW 3: READY & RINGING -->
-    <div id="view-ready" class="hidden flex-1 flex flex-col justify-between p-6 bg-emerald-600 text-white text-center">
-      <div class="flex items-center justify-between text-emerald-100 text-xs font-bold">
-        <span>The Roastery</span>
-        <span class="bg-emerald-700 px-3 py-1 rounded-full animate-pulse">🔔 Ringing Now...</span>
-      </div>
-      <div class="my-auto">
-        <div id="ready-number" class="dot-matrix text-8xl text-white ringing-animation">--</div>
-        <h2 class="text-3xl font-black mt-5 mb-1">Your Order is Ready!</h2>
-        <p class="text-emerald-100 text-sm font-semibold">Please pick it up at the counter</p>
-      </div>
-      <div class="space-y-2">
-        <button onclick="notifyComing()" id="ack-btn" class="w-full py-4 rounded-2xl bg-neutral-950 text-white font-extrabold text-base shadow-xl">
-          I'm On My Way! 🏃‍♂️
-        </button>
-        <p class="text-[11px] text-emerald-100 opacity-90">Tap to stop ringing and notify the cashier</p>
-      </div>
-    </div>
-
-    <!-- VIEW 4: COMPLETED (ORDER FINISHED) -->
-    <div id="view-completed" class="hidden flex-1 flex flex-col justify-center items-center p-6 text-center bg-slate-900 text-white">
-      <div class="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-4xl mb-6 shadow-xl">
-        🎉
-      </div>
-      <h2 class="text-3xl font-black mb-2">Order Completed</h2>
-      <p class="text-slate-400 text-sm max-w-xs mx-auto mb-8">Thank you for visiting The Roastery! Enjoy your order.</p>
-      <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl px-6 py-4">
-        <span class="text-xs text-slate-400 block font-bold uppercase tracking-wider mb-1">Receipt Number</span>
-        <span id="completed-order-num" class="dot-matrix text-4xl text-emerald-400">--</span>
-      </div>
+    <!-- ACTION BUTTONS / FEEDBACK FORM -->
+    <div id="action-container" class="space-y-3">
+      <!-- Injected dynamically based on state -->
     </div>
 
   </div>
 
   <script>
-    const TOPIC = 'fast_orders_dedicated_channel_2026';
-    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-
-    let orders = [];
-    let myOrderNumber = localStorage.getItem('cust_order_num') || null;
-    let audioCtx = null;
-    let ringInterval = null;
-    let isCompleted = false;
-
-    // AUTO-FILL FROM URL QUERY PARAMETER (e.g. ?order=89)
     const urlParams = new URLSearchParams(window.location.search);
-    const urlOrder = urlParams.get('order');
-    if (urlOrder) {
-      myOrderNumber = urlOrder.trim();
-      localStorage.setItem('cust_order_num', myOrderNumber);
+    const myOrderNum = urlParams.get('order');
+
+    if (!myOrderNum) {
+      document.getElementById('customer-order-num').innerText = '??';
+      document.getElementById('status-card').className = 'my-6 p-5 rounded-2xl border-2 border-red-200 bg-red-50 text-red-900';
+      document.getElementById('status-icon').innerText = '❌';
+      document.getElementById('status-title').innerText = 'Invalid Order Link';
+      document.getElementById('status-desc').innerText = 'Please scan the QR code provided on your cafe receipt.';
+    } else {
+      document.getElementById('customer-order-num').innerText = `#${myOrderNum}`;
     }
 
+    const BASE_TOPIC = 'fast_orders_channel_2026';
+    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+
+    let currentOrderState = null;
+    let selectedRating = 5; // Default 5 stars
+    let reviewSubmitted = false;
+
     client.on('connect', () => {
-      document.getElementById('cust-sync-status').innerText = '● Live Connected';
-      document.getElementById('cust-sync-status').className = 'text-[10px] text-emerald-600 font-bold';
-      client.subscribe(TOPIC);
-      if (myOrderNumber) {
-        socketTrackOrder(myOrderNumber);
-      }
+      client.subscribe(`${BASE_TOPIC}/orders`);
+      client.subscribe(`${BASE_TOPIC}/events`);
     });
 
     client.on('message', (topic, message) => {
       try {
         const data = JSON.parse(message.toString());
-        if (data.orders) {
-          orders = data.orders;
-          render();
-        }
-        if (data.type === 'ring' && myOrderNumber === data.number) {
-          document.getElementById('ack-btn').innerText = "I'm On My Way! 🏃‍♂️";
-          startRingingLoop();
-        }
-        if (data.type === 'completed' && myOrderNumber === data.number) {
-          stopRingingLoop();
-          isCompleted = true;
-          localStorage.removeItem('cust_order_num');
-          render();
+        if (topic.endsWith('/orders') && data.orders && myOrderNum) {
+          const found = data.orders.find(o => o.number === myOrderNum);
+          if (found) {
+            currentOrderState = found;
+            updateUI(found);
+          } else {
+            // If order was removed entirely
+            if (currentOrderState && currentOrderState.status === 'picked_up') {
+              // Already handled
+            } else {
+              setCompletedUI();
+            }
+          }
         }
       } catch (e) {}
     });
 
-    function broadcast(extra = {}) {
-      client.publish(TOPIC, JSON.stringify({ orders, ...extra }), { retain: true });
-      render();
-    }
+    function updateUI(order) {
+      const card = document.getElementById('status-card');
+      const icon = document.getElementById('status-icon');
+      const title = document.getElementById('status-title');
+      const desc = document.getElementById('status-desc');
+      const actions = document.getElementById('action-container');
 
-    function socketTrackOrder(num) {
-      if (!orders.find(o => o.number === num)) {
-        orders.push({ number: num, status: 'preparing', ringing: false, customerComing: false });
-        broadcast();
+      if (order.status === 'preparing') {
+        card.className = 'my-6 p-5 rounded-2xl border-2 border-amber-200 bg-amber-50 text-amber-950';
+        icon.innerText = '👨‍🍳';
+        title.innerText = 'Preparing Your Order';
+        desc.innerText = order.desc || 'Your order is currently being prepared at the bar.';
+        actions.innerHTML = `<p class="text-xs text-slate-400 italic">We will notify you the moment it's ready!</p>`;
+      } 
+      else if (order.status === 'ready') {
+        card.className = 'my-6 p-5 rounded-2xl border-2 border-emerald-300 bg-emerald-100 text-emerald-950 animate-pulse';
+        icon.innerText = '🔔';
+        title.innerText = 'Order is Ready!';
+        desc.innerText = 'Please head to the counter to pick up your items.';
+        
+        actions.innerHTML = `
+          <button onclick="notifyComing()" class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition shadow-lg">
+            🏃‍♂️ I'm on my way to the counter!
+          </button>
+        `;
+      } 
+      else if (order.status === 'picked_up') {
+        setCompletedUI();
       }
     }
 
-    function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    }
-    function playBeep() {
-      try {
-        initAudio();
-        const now = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.setValueAtTime(880, now);
-        osc.frequency.setValueAtTime(1174, now + 0.12);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.36);
-      } catch(e) {}
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    }
-    function startRingingLoop() {
-      if (!ringInterval) { playBeep(); ringInterval = setInterval(playBeep, 1200); }
-    }
-    function stopRingingLoop() {
-      if (ringInterval) { clearInterval(ringInterval); ringInterval = null; }
-    }
-    function enableAudio() {
-      initAudio(); playBeep();
-      document.getElementById('sound-btn').innerText = '✓ Sound Alert Enabled';
-      document.getElementById('sound-btn').className = 'w-full py-3.5 rounded-2xl bg-emerald-100 text-emerald-800 font-bold text-xs';
-    }
+    function setCompletedUI() {
+      const card = document.getElementById('status-card');
+      const icon = document.getElementById('status-icon');
+      const title = document.getElementById('status-title');
+      const desc = document.getElementById('status-desc');
+      const actions = document.getElementById('action-container');
 
-    function pressKey(d) {
-      initAudio();
-      const el = document.getElementById('keypad-display');
-      if (el.innerText.length < 4) el.innerText += d;
-    }
-    function backspaceKey() {
-      const el = document.getElementById('keypad-display');
-      el.innerText = el.innerText.slice(0, -1);
-    }
-    function clearKeypad() { document.getElementById('keypad-display').innerText = ''; }
+      card.className = 'my-6 p-5 rounded-2xl border-2 border-slate-200 bg-slate-50 text-slate-800';
+      icon.innerText = '✅';
+      title.innerText = 'Order Picked Up';
+      desc.innerText = 'Thank you for visiting The Roastery!';
 
-    function trackOrder() {
-      initAudio();
-      const num = document.getElementById('keypad-display').innerText.trim();
-      if (!num) return alert('Please enter your order number');
-      myOrderNumber = num;
-      localStorage.setItem('cust_order_num', num);
-      socketTrackOrder(num);
-    }
-    
-    function notifyComing() {
-      stopRingingLoop();
-      const o = orders.find(x => x.number === myOrderNumber);
-      if (o) { o.ringing = false; o.customerComing = true; }
-      document.getElementById('ack-btn').innerText = '✓ Cashier Notified!';
-      broadcast({ type: 'coming', number: myOrderNumber });
-    }
-
-    function render() {
-      const vKey = document.getElementById('view-keypad');
-      const vWait = document.getElementById('view-waiting');
-      const vReady = document.getElementById('view-ready');
-      const vCompleted = document.getElementById('view-completed');
-      const header = document.getElementById('customer-header');
-
-      // If order was marked completed by the cashier
-      if (isCompleted) {
-        vKey.classList.add('hidden'); 
-        vWait.classList.add('hidden'); 
-        vReady.classList.add('hidden');
-        vCompleted.classList.remove('hidden');
-        header.classList.add('hidden');
-        document.getElementById('completed-order-num').innerText = myOrderNumber || '--';
-        return;
-      }
-
-      if (!myOrderNumber) {
-        vKey.classList.remove('hidden'); vWait.classList.add('hidden'); vReady.classList.add('hidden'); vCompleted.classList.add('hidden');
-        header.classList.remove('hidden');
-        stopRingingLoop();
-        return;
-      }
-
-      const myOrder = orders.find(o => o.number === myOrderNumber);
-      const readyNums = orders.filter(o => o.status === 'ready').map(o => o.number);
-      document.getElementById('box-ready-num').innerText = readyNums.length ? readyNums.join(', ') : '--';
-      document.getElementById('box-prep-num').innerText = myOrderNumber;
-
-      if (myOrder && myOrder.status === 'ready') {
-        vKey.classList.add('hidden'); vWait.classList.add('hidden'); vReady.classList.remove('hidden'); vCompleted.classList.add('hidden');
-        header.classList.add('hidden');
-        document.getElementById('ready-number').innerText = myOrderNumber;
-        if (myOrder.ringing) startRingingLoop(); else stopRingingLoop();
+      if (reviewSubmitted) {
+        actions.innerHTML = `
+          <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl text-emerald-900 text-xs font-bold">
+            ❤️ Thank you! Your feedback has been sent to the manager.
+          </div>
+        `;
       } else {
-        vKey.classList.add('hidden'); vWait.classList.remove('hidden'); vReady.classList.add('hidden'); vCompleted.classList.add('hidden');
-        header.classList.add('hidden'); // Also hide the top header once tracking starts for a sleek full-screen experience
-        document.getElementById('waiting-number').innerText = myOrderNumber;
-        stopRingingLoop();
+        actions.innerHTML = `
+          <div class="border-t border-slate-200 pt-4 text-left">
+            <h3 class="font-extrabold text-xs text-slate-900 mb-1 text-center">How was your experience?</h3>
+            <p class="text-[11px] text-slate-500 mb-3 text-center">Rate us and let us know what we can improve:</p>
+            
+            <!-- Star Rating Selector -->
+            <div id="star-container" class="flex justify-center gap-2 mb-3">
+              <button type="button" onclick="setRating(1)" class="text-2xl text-slate-300 hover:scale-110 transition star-btn" data-val="1">★</button>
+              <button type="button" onclick="setRating(2)" class="text-2xl text-slate-300 hover:scale-110 transition star-btn" data-val="2">★</button>
+              <button type="button" onclick="setRating(3)" class="text-2xl text-slate-300 hover:scale-110 transition star-btn" data-val="3">★</button>
+              <button type="button" onclick="setRating(4)" class="text-2xl text-slate-300 hover:scale-110 transition star-btn" data-val="4">★</button>
+              <button type="button" onclick="setRating(5)" class="text-2xl text-amber-400 hover:scale-110 transition star-btn" data-val="5">★</button>
+            </div>
+
+            <textarea id="review-comment" rows="2" placeholder="What can we improve? (optional)..." class="w-full border-2 border-slate-200 rounded-xl p-2.5 text-xs font-medium focus:outline-none focus:border-orange-500 mb-2"></textarea>
+            
+            <button onclick="submitReview()" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-md">
+              Submit Feedback 🚀
+            </button>
+          </div>
+        `;
+        setRating(5); // Initialize stars
       }
     }
 
-    render();
+    function setRating(val) {
+      selectedRating = val;
+      const buttons = document.querySelectorAll('.star-btn');
+      buttons.forEach(btn => {
+        const starVal = parseInt(btn.getAttribute('data-val'));
+        if (starVal <= val) {
+          btn.className = 'text-2xl text-amber-400 hover:scale-110 transition star-btn';
+        } else {
+          btn.className = 'text-2xl text-slate-300 hover:scale-110 transition star-btn';
+        }
+      });
+    }
+
+    function submitReview() {
+      const comment = document.getElementById('review-comment').value.trim();
+      const reviewObj = {
+        orderNum: myOrderNum,
+        rating: selectedRating,
+        comment: comment,
+        timestamp: Date.now()
+      };
+
+      // Publish review via MQTT to manager
+      client.publish(`${BASE_TOPIC}/reviews`, JSON.stringify({ review: reviewObj }), { retain: true });
+      reviewSubmitted = true;
+      setCompletedUI();
+    }
+
+    function notifyComing() {
+      client.publish(`${BASE_TOPIC}/events`, JSON.stringify({ type: 'coming', number: myOrderNum }), { retain: false });
+      alert('The cashier has been notified that you are heading to the counter!');
+    }
   </script>
 </body>
 </html>
