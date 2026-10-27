@@ -106,9 +106,6 @@
         <button onclick="enableAudio()" id="sound-btn" class="w-full py-3.5 rounded-2xl bg-neutral-900 text-white font-bold text-xs">
           🔊 Tap to Enable Sound Alert
         </button>
-        <button onclick="changeOrder()" class="text-xs text-neutral-400 font-bold underline block mx-auto py-1">
-          Change Order Number
-        </button>
       </div>
     </div>
 
@@ -131,6 +128,19 @@
       </div>
     </div>
 
+    <!-- VIEW 4: COMPLETED (ORDER FINISHED) -->
+    <div id="view-completed" class="hidden flex-1 flex flex-col justify-center items-center p-6 text-center bg-slate-900 text-white">
+      <div class="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-4xl mb-6 shadow-xl">
+        🎉
+      </div>
+      <h2 class="text-3xl font-black mb-2">Order Completed</h2>
+      <p class="text-slate-400 text-sm max-w-xs mx-auto mb-8">Thank you for visiting The Roastery! Enjoy your order.</p>
+      <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl px-6 py-4">
+        <span class="text-xs text-slate-400 block font-bold uppercase tracking-wider mb-1">Receipt Number</span>
+        <span id="completed-order-num" class="dot-matrix text-4xl text-emerald-400">--</span>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -141,6 +151,7 @@
     let myOrderNumber = localStorage.getItem('cust_order_num') || null;
     let audioCtx = null;
     let ringInterval = null;
+    let isCompleted = false;
 
     // AUTO-FILL FROM URL QUERY PARAMETER (e.g. ?order=89)
     const urlParams = new URLSearchParams(window.location.search);
@@ -172,8 +183,9 @@
         }
         if (data.type === 'completed' && myOrderNumber === data.number) {
           stopRingingLoop();
-          alert('Your order has been picked up. Thank you!');
-          changeOrder();
+          isCompleted = true;
+          localStorage.removeItem('cust_order_num');
+          render();
         }
       } catch (e) {}
     });
@@ -242,15 +254,7 @@
       localStorage.setItem('cust_order_num', num);
       socketTrackOrder(num);
     }
-    function changeOrder() {
-      stopRingingLoop();
-      myOrderNumber = null;
-      localStorage.removeItem('cust_order_num');
-      // Clear URL parameter if any
-      window.history.replaceState({}, document.title, window.location.pathname);
-      document.getElementById('keypad-display').innerText = '';
-      render();
-    }
+    
     function notifyComing() {
       stopRingingLoop();
       const o = orders.find(x => x.number === myOrderNumber);
@@ -263,10 +267,22 @@
       const vKey = document.getElementById('view-keypad');
       const vWait = document.getElementById('view-waiting');
       const vReady = document.getElementById('view-ready');
+      const vCompleted = document.getElementById('view-completed');
       const header = document.getElementById('customer-header');
 
+      // If order was marked completed by the cashier
+      if (isCompleted) {
+        vKey.classList.add('hidden'); 
+        vWait.classList.add('hidden'); 
+        vReady.classList.add('hidden');
+        vCompleted.classList.remove('hidden');
+        header.classList.add('hidden');
+        document.getElementById('completed-order-num').innerText = myOrderNumber || '--';
+        return;
+      }
+
       if (!myOrderNumber) {
-        vKey.classList.remove('hidden'); vWait.classList.add('hidden'); vReady.classList.add('hidden');
+        vKey.classList.remove('hidden'); vWait.classList.add('hidden'); vReady.classList.add('hidden'); vCompleted.classList.add('hidden');
         header.classList.remove('hidden');
         stopRingingLoop();
         return;
@@ -278,13 +294,13 @@
       document.getElementById('box-prep-num').innerText = myOrderNumber;
 
       if (myOrder && myOrder.status === 'ready') {
-        vKey.classList.add('hidden'); vWait.classList.add('hidden'); vReady.classList.remove('hidden');
+        vKey.classList.add('hidden'); vWait.classList.add('hidden'); vReady.classList.remove('hidden'); vCompleted.classList.add('hidden');
         header.classList.add('hidden');
         document.getElementById('ready-number').innerText = myOrderNumber;
         if (myOrder.ringing) startRingingLoop(); else stopRingingLoop();
       } else {
-        vKey.classList.add('hidden'); vWait.classList.remove('hidden'); vReady.classList.add('hidden');
-        header.classList.remove('hidden');
+        vKey.classList.add('hidden'); vWait.classList.remove('hidden'); vReady.classList.add('hidden'); vCompleted.classList.add('hidden');
+        header.classList.add('hidden'); // Also hide the top header once tracking starts for a sleek full-screen experience
         document.getElementById('waiting-number').innerText = myOrderNumber;
         stopRingingLoop();
       }
