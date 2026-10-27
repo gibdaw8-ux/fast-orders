@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fast Orders POS - Customer Reviews & Ratings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; user-select: none; }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 text-slate-800 flex items-center justify-center">
+
+  <div class="max-w-4xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col min-h-[600px]">
+    
+    <!-- Top Bar -->
+    <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+      <div>
+        <span class="font-extrabold text-base block">⭐ Customer Feedback & Ratings</span>
+        <span class="text-xs text-slate-400 font-semibold">Live Cloud Sync</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="manager.html" class="text-xs bg-slate-800 hover:bg-slate-700 px-3.5 py-2 rounded-xl font-bold transition">← Back to Dashboard</a>
+        <button onclick="clearReviews()" class="text-xs bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white px-3.5 py-2 rounded-xl font-bold transition">🗑️ Clear Reviews</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="p-6 flex-1 flex flex-col gap-6">
+      
+      <!-- Rating Overview Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-orange-50 border border-orange-200 rounded-2xl p-5 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-orange-700 uppercase tracking-wider">Average Rating</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="avg-rating" class="text-3xl font-black text-orange-900">0.0</span>
+              <span class="text-orange-500 text-lg">★</span>
+            </div>
+          </div>
+          <div id="star-breakdown" class="text-xs font-semibold text-orange-900 space-y-0.5 text-right">
+            <!-- Breakdown injected via JS -->
+          </div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-center">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Feedback Received</span>
+          <span id="total-reviews-count" class="text-3xl font-black text-slate-900 mt-1">0</span>
+        </div>
+      </div>
+
+      <!-- Reviews Feed -->
+      <div>
+        <h2 class="font-extrabold text-sm text-slate-800 mb-3">💬 Customer Comments & Improvement Suggestions</h2>
+        <div id="reviews-list" class="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+          <span class="text-xs text-slate-400 italic">No customer reviews received yet...</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const BASE_TOPIC = 'fast_orders_channel_2026';
+    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+
+    let reviews = JSON.parse(localStorage.getItem('cafe_customer_reviews')) || [];
+
+    client.on('connect', () => {
+      client.subscribe(`${BASE_TOPIC}/reviews`);
+    });
+
+    client.on('message', (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        if (topic.endsWith('/reviews') && data.review) {
+          // Add new review if not already stored
+          const exists = reviews.some(r => r.timestamp === data.review.timestamp && r.orderNum === data.review.orderNum);
+          if (!exists) {
+            reviews.unshift(data.review); // Add to top
+            localStorage.setItem('cafe_customer_reviews', JSON.stringify(reviews));
+            renderReviews();
+          }
+        }
+      } catch (e) {}
+    });
+
+    function renderReviews() {
+      const list = document.getElementById('reviews-list');
+      const totalCountEl = document.getElementById('total-reviews-count');
+      const avgRatingEl = document.getElementById('avg-rating');
+      const breakdownEl = document.getElementById('star-breakdown');
+
+      totalCountEl.innerText = reviews.length;
+
+      if (reviews.length === 0) {
+        avgRatingEl.innerText = '0.0';
+        breakdownEl.innerHTML = '<span>No ratings yet</span>';
+        list.innerHTML = `<span class="text-xs text-slate-400 italic">No customer reviews received yet...</span>`;
+        return;
+      }
+
+      const totalStars = reviews.reduce((sum, r) => sum + r.rating, 0);
+      const avg = totalStars / reviews.length;
+      avgRatingEl.innerText = avg.toFixed(1);
+
+      // Star breakdown counts
+      const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+      reviews.forEach(r => { if (counts[r.rating] !== undefined) counts[r.rating]++; });
+
+      breakdownEl.innerHTML = `
+        <div>5★: ${counts[5]} | 4★: ${counts[4]}</div>
+        <div>3★: ${counts[3]} | 2★: ${counts[2]} | 1★: ${counts[1]}</div>
+      `;
+
+      list.innerHTML = reviews.map(r => `
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-sm text-slate-900">Order #${r.orderNum}</span>
+              <span class="text-xs font-black text-amber-500">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+            </div>
+            <span class="text-[10px] text-slate-400 font-bold">${new Date(r.timestamp).toLocaleString()}</span>
+          </div>
+          <p class="text-xs text-slate-700 font-medium">${r.comment ? escapeHtml(r.comment) : '<span class="italic text-slate-400">No written comments provided.</span>'}</p>
+        </div>
+      `).join('');
+    }
+
+    function clearReviews() {
+      if (confirm('Are you sure you want to delete all customer reviews?')) {
+        reviews = [];
+        localStorage.setItem('cafe_customer_reviews', JSON.stringify(reviews));
+        renderReviews();
+      }
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    renderReviews();
+  </script>
+</body>
+</html>
